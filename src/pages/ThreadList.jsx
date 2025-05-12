@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import CreateThreadModal from './CreateThread'; // byt till din faktiska s�kv�g
 
-export default function ThreadList({ token }) {
+export default function ThreadList({ token, currentUserId }) {
   const [threads, setThreads] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -25,7 +25,20 @@ export default function ThreadList({ token }) {
       .then((res) => setCategories(res.data))
       .catch((err) => console.error('Kunde inte h�mta kategorier:', err));
   }, []);
-
+  const handleDeleteThread = (threadId) => {
+    if (!window.confirm('�r du s�ker p� att du vill ta bort denna tr�d?')) return;
+  
+    axios
+      .delete(`http://localhost:8001/threads/${threadId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(() => {
+        setThreads((prev) => prev.filter((t) => t.id !== threadId));
+      })
+      .catch((err) => {
+        console.error('Kunde inte ta bort tr�den:', err);
+      });
+  };
  
 
   const filteredThreads = selectedCategory
@@ -35,7 +48,7 @@ export default function ThreadList({ token }) {
   return (
     <div className="min-h-screen w-full bg-white p-6 overflow-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <h2 className="text-3xl font-bold text-gray-800">Forumtr�dar</h2>
+        <h2 className="text-3xl font-bold text-gray-800">Forumtrådar</h2>
         <button
           onClick={() => setShowModal(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
@@ -98,7 +111,16 @@ export default function ThreadList({ token }) {
                   Publicerad: {new Date(thread.created_at).toLocaleDateString()} av {thread.author}
                 </p>
               </Link>
-            </li>
+              {thread.author_id === currentUserId && (
+      <button
+        onClick={() => handleDeleteThread(thread.id)}
+        className="mt-2 text-red-600 text-sm hover:underline"
+      >
+        Ta bort tråd
+      </button>
+    )}
+  </li>
+          
           ))}
         </ul>
       )}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
-
+import { toast } from 'react-toastify';
 function Messages({ token, currentUserId, setUnreadCount }) {
   const [privateMessages, setPrivateMessages] = useState([]);
   const [sentMessages, setSentMessages] = useState([]);
@@ -67,11 +67,12 @@ function Messages({ token, currentUserId, setUnreadCount }) {
         }
       )
       .then(() => {
-        alert('Svar skickat!');
+        toast.success('Svar skickat!');
         setReplies({ ...replies, [selectedMessage.id]: '' });
         setShowReplyBox(false);
       })
       .catch((err) => {
+        toast.error('Svar kunde inte skickas');
         console.error('Kunde inte skicka svar:', err);
       });
   };

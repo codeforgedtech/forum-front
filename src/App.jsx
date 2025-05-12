@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify'; // Importera Toastify
+
 
 import Navbar from './components/Navbar';
 import ThreadPage from './pages/ThreadPage';
@@ -32,23 +34,11 @@ function App() {
       setCurrentUserId(userId);
     }
   }, [token]);
-  const refreshUnreadCount = async () => {
-    if (!token) return;
 
-    try {
-      const res = await fetch('http://localhost:8001/private-messages/unread/count', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setUnreadCount(data.unreadCount);
-    } catch (err) {
-      console.error('Kunde inte hämta olästa meddelanden:', err);
-    }
-  };
- 
   const handleLogin = (newToken) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
+    toast.success('Välkommen tillbaka!',);
   };
 
   const handleLogout = () => {
@@ -56,36 +46,19 @@ function App() {
     setToken(null);
     setCurrentUserId(null);
     setUnreadCount(0);
+    toast.info('Du har loggat ut.')
   };
-
-
-useEffect(() => {
-  if (!token) return;
-
-  const fetchUnreadCount = async () => {
-    try {
-      const res = await fetch('http://localhost:8001/private-messages/unread/count', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setUnreadCount(data.unreadCount);
-    } catch (err) {
-      console.error('Kunde inte hämta olästa meddelanden:', err);
-    }
-  };
-
-  fetchUnreadCount();
-}, [token]);
 
   return (
     <BrowserRouter>
-     <Navbar token={token} onLogout={handleLogout} unreadCount={unreadCount} />
+      <Navbar token={token} onLogout={handleLogout} unreadCount={unreadCount} />
       <div className="w-screen-lg mx-auto p-6">
         <Routes>
-          <Route
-            path="/"
-            element={token ? <ThreadList token={token} /> : <Navigate to="/login" />}
-          />
+        <Route
+  path="/"
+  element={token ? <ThreadList token={token} currentUserId={currentUserId} /> : <Navigate to="/login" />}
+/>
+
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register />} />
           <Route
@@ -97,16 +70,15 @@ useEffect(() => {
             element={token ? <CreateThread token={token} /> : <Navigate to="/login" />}
           />
           <Route
-  path="/messages"
-  element={
-    <Messages
-      token={token}
-      currentUserId={currentUserId}
-      setUnreadCount={setUnreadCount}
-      refreshUnreadCount={refreshUnreadCount} // 👈 Lägg till denna
-    />
-  }
-/>
+            path="/messages"
+            element={
+              <Messages
+                token={token}
+                currentUserId={currentUserId}
+                setUnreadCount={setUnreadCount}
+              />
+            }
+          />
           <Route
             path="/send-private-message"
             element={token ? <SendPrivateMessage token={token} /> : <Navigate to="/login" />}
@@ -117,11 +89,13 @@ useEffect(() => {
           />
         </Routes>
       </div>
+      <ToastContainer /> {/* Placera ToastContainer h�r f�r att visa alla toasts */}
     </BrowserRouter>
   );
 }
 
 export default App;
+
 
 
 

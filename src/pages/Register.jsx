@@ -3,6 +3,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import React from 'react'
+import { ToastContainer, toast } from 'react-toastify';
 export default function Register() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -17,11 +18,11 @@ export default function Register() {
         email,
         password
       });
-      alert('Registreringen lyckades!');
+      toast.success('Registreringen lyckades!');
       navigate('/login');
     } catch (err) {
       console.error(err.response?.data || err);
-      alert('Registreringen misslyckades. Kontrollera att alla fält är ifyllda.');
+      toast.error('Registreringen misslyckades. Kontrollera att alla fält är ifyllda.');
     }
   };
 

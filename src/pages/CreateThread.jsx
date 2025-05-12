@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from '../utils/axiosInstance';
 import React from 'react';
+import { toast } from 'react-toastify';
 
 export default function CreateThread({ token, onClose, onThreadCreated }) {
   const [title, setTitle] = useState('');
@@ -25,10 +26,12 @@ export default function CreateThread({ token, onClose, onThreadCreated }) {
         { title, content, category },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      toast.success('Tråd skapad!')
       onThreadCreated(res.data); // Uppdatera trådlistan
       onClose();
       window.location.reload() // Stäng modalen
     } catch (err) {
+      toast.error('Kunde inte skapa tråd')
       console.error(err);
       setError('Kunde inte skapa tråd.');
     }
