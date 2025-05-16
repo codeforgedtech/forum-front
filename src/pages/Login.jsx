@@ -17,6 +17,7 @@ export default function Login({ onLogin }) {
         password
       });
       localStorage.setItem('authToken', res.data.token); 
+      localStorage.setItem('user', JSON.stringify(res.data.user));
       onLogin(res.data.token);
       navigate('/'); // Vid lyckad inloggning
     } catch (err) {
