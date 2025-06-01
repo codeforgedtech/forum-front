@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/axiosInstance';
 import { useParams, useNavigate } from 'react-router-dom';
 
 function SendMessageInConversation({ token }) {
@@ -10,7 +10,7 @@ function SendMessageInConversation({ token }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    axios
+    api
       .post(
         `http://localhost:8001/conversations/${conversationId}/messages`,
         { content },

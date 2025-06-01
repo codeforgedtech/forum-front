@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from '../utils/axiosInstance';
+import api from '../utils/axiosInstance';
 import React from 'react';
 import { toast } from 'react-toastify';
 
@@ -11,7 +11,7 @@ export default function CreateThread({ token, onClose, onThreadCreated }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    axios.get('http://localhost:8001/categories')
+    api.get('http://localhost:8001/categories')
       .then(res => setCategories(res.data))
       .catch(err => console.error('Kunde inte hämta kategorier:', err));
   }, []);
@@ -21,7 +21,7 @@ export default function CreateThread({ token, onClose, onThreadCreated }) {
     setError('');
 
     try {
-      const res = await axios.post(
+      const res = await api.post(
         'http://localhost:8001/threads',
         { title, content, category },
         { headers: { Authorization: `Bearer ${token}` } }

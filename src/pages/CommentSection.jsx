@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/axiosInstance';
 import React from 'react';
 
 export default function CommentSection({ threadId, token }) {
@@ -7,7 +7,7 @@ export default function CommentSection({ threadId, token }) {
   const [newComment, setNewComment] = useState('');
 
   useEffect(() => {
-    axios
+    api
       .get(`http://localhost:8001/comments/${threadId}`)
       .then((res) => setComments(res.data))
       .catch((err) => console.error('Kunde inte h�mta kommentarer:', err));
@@ -18,7 +18,7 @@ export default function CommentSection({ threadId, token }) {
     if (!newComment.trim()) return;
 
     try {
-      const res = await axios.post(
+      const res = await api.post(
         `http://localhost:8001/comments`,
         { threadId, content: newComment },
         { headers: { Authorization: `Bearer ${token}` } }

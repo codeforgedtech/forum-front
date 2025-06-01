@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import api from '../utils/axiosInstance';
 import { Trash, Mail, Send, ArrowLeft, Reply } from "lucide-react";
 import { toast } from "react-toastify";
 function Messages({ token, currentUserId, setUnreadCount }) {
@@ -20,7 +20,7 @@ function Messages({ token, currentUserId, setUnreadCount }) {
   useEffect(() => {
     if (!currentUserId) return;
     const numericUserId = Number(currentUserId);
-    axios
+    api
       .get("http://localhost:8001/private-messages", {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -44,7 +44,7 @@ function Messages({ token, currentUserId, setUnreadCount }) {
   }, [token, currentUserId, setUnreadCount]);
 
   useEffect(() => {
-    axios
+    api
       .get(`http://localhost:8001/users`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -66,7 +66,7 @@ function Messages({ token, currentUserId, setUnreadCount }) {
   const handleReplySend = () => {
     const body = replies[selectedMessage.id];
     if (!body) return;
-    axios
+    api
       .post(
         "http://localhost:8001/private-messages",
         {
@@ -90,7 +90,7 @@ function Messages({ token, currentUserId, setUnreadCount }) {
   };
 
   const handleDelete = (id) => {
-    axios
+    api
       .delete(`http://localhost:8001/private-messages/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -106,7 +106,7 @@ function Messages({ token, currentUserId, setUnreadCount }) {
   };
 
   const handleDeleteSent = (id) => {
-    axios
+    api
       .delete(`http://localhost:8001/private-messages/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -121,7 +121,7 @@ function Messages({ token, currentUserId, setUnreadCount }) {
   const handleNewMessageSend = () => {
     if (!newMessage.receiverId || !newMessage.body || !newMessage.subject)
       return;
-    axios
+    api
       .post("http://localhost:8001/private-messages", newMessage, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -135,55 +135,54 @@ function Messages({ token, currentUserId, setUnreadCount }) {
       });
   };
 
-  const handleMarkAsRead = (messageId) => {
-    if (!token) {
-      console.error("Token saknas");
-      return;
-    }
+const handleMarkAsRead = async (messageId) => {
+  if (!token) {
+    console.error("Token saknas");
+    return;
+  }
 
-    axios
-      .post(
-        `http://localhost:8001/private-messages/${messageId}/read`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+  try {
+    await api.post(
+      `http://localhost:8001/private-messages/${messageId}/read`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setPrivateMessages((prevMessages) =>
+      prevMessages.map((msg) =>
+        msg.id === messageId ? { ...msg, is_read: true } : msg
       )
-      .then(() => {
-        setPrivateMessages((prevMessages) =>
-          prevMessages.map((msg) =>
-            msg.id === messageId ? { ...msg, is_read: true } : msg
-          )
-        );
+    );
 
-        if (refreshUnreadCount) {
-          refreshUnreadCount();
-        }
-      })
-      .catch((err) => {
-        console.error("Kunde inte markera meddelande som l�st:", err);
-      });
-  };
+    if (refreshUnreadCount) {
+      await refreshUnreadCount();
+    }
+  } catch (err) {
+    console.error("Kunde inte markera meddelande som l�st:", err);
+  }
+};
+
   const refreshUnreadCount = useCallback(async () => {
+    if (!token) return;
     try {
-      const res = await fetch(
-        "http://localhost:8001/private-messages/unread/count",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      const data = await res.json();
-      setUnreadCount(data.unreadCount);
+      const res = await api.get("http://localhost:8001/private-messages/unread/count", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUnreadCount(res.data.unreadCount);
     } catch (err) {
-      console.error("Kunde inte h�mta ol�sta meddelanden:", err);
+      console.error("Kunde inte hämta olästa meddelanden:", err);
     }
   }, [setUnreadCount, token]);
 
   useEffect(() => {
-    if (token) refreshUnreadCount();
+    if (token) {
+      refreshUnreadCount();
+    }
   }, [refreshUnreadCount, token]);
   useEffect(() => {
     if (!token) return;
 
-    axios
+    api
       .get("http://localhost:8001/private-messages/unread/count", {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -211,10 +210,10 @@ function Messages({ token, currentUserId, setUnreadCount }) {
               + Skriv nytt meddelande
             </button>
           </div>
-          <div className="flex-1 p-4 overflow-y-auto">
-            <div className="flex-1 p-4 overflow-y-auto">
-              <h3 className="font-semibold text-gray-700 mb-2">
-                Inkorg ({privateMessages.length})
+          <div className="flex-1 p-2 overflow-y-auto">
+            <div className="flex-1 p-2 overflow-y-auto">
+              <h3 className="font-semibold text-gray-700">
+              Inkorg ({privateMessages.length})
               </h3>
 
               {privateMessages.map((message) => {
@@ -233,7 +232,7 @@ function Messages({ token, currentUserId, setUnreadCount }) {
                     }}
                     className={`p-3 rounded-md cursor-pointer transition 
           ${
-            isSelected ? "bg-blue-100" : isUnread ? "bg-yellow-100" : "bg-white"
+            isSelected ? "bg-blue-100" : isUnread ? "bg-emerald-700 mb-2 border rounded  shadow-sm" : "mb-2 border rounded bg-white shadow-sm"
           }
           hover:bg-blue-50`}
                   >
@@ -264,9 +263,9 @@ function Messages({ token, currentUserId, setUnreadCount }) {
                 );
               })}
             </div>
-
-            <h3 className="font-semibold text-gray-700 mb-2">
-              Skickade ({sentMessages.length})
+            <div className="flex-1 p-2 overflow-y-auto">
+            <h3 className="font-semibold text-gray-700">
+            Utkorg ({sentMessages.length})
             </h3>
             {sentMessages.map((msg) => (
               <div
@@ -309,6 +308,7 @@ function Messages({ token, currentUserId, setUnreadCount }) {
                 )}
               </div>
             ))}
+          </div>
           </div>
         </div>
 

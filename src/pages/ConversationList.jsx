@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../utils/axiosInstance';
 
 export default function ConversationList({ onSelectConversation }) {
   const [conversations, setConversations] = useState([]);
@@ -10,7 +10,7 @@ export default function ConversationList({ onSelectConversation }) {
 
   const fetchConversations = async () => {
     try {
-      const response = await axios.get('http://localhost:8001/messages/conversations', {
+      const response = await api.get('http://localhost:8001/messages/conversations', {
         withCredentials: true,
       });
       setConversations(response.data);

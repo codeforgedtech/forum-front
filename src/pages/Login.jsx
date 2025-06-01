@@ -1,18 +1,19 @@
 // pages/Login.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../utils/axiosInstance';
 import React from 'react';
+import { toast } from 'react-toastify';
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:8001/auth/login', {
+      const res = await api.post('http://localhost:8001/auth/login', {
         username,
         password
       });
@@ -23,7 +24,7 @@ export default function Login({ onLogin }) {
     } catch (err) {
       // Kolla om det �r ett serverfel eller om n�got annat gick fel
       console.error('Login error:', err.response ? err.response.data : err);
-      setError('Fel anv�ndarnamn eller l�senord.');
+      toast.error('Fel användarnamn eller lösenord.');
     }
   };
 

@@ -1,6 +1,6 @@
 // pages/Register.jsx
 import { useState } from 'react';
-import axios from 'axios';
+import api from '../utils/axiosInstance';
 import { useNavigate } from 'react-router-dom';
 import React from 'react'
 import { ToastContainer, toast } from 'react-toastify';
@@ -13,7 +13,7 @@ export default function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:8001/auth/register', {
+      await api.post('http://localhost:8001/auth/register', {
         username,
         email,
         password

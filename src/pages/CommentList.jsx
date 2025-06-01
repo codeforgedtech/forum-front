@@ -1,12 +1,12 @@
 // components/CommentList.jsx
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../utils/axiosInstance';
 
 export default function CommentList({ threadId }) {
   const [comments, setComments] = useState([]);
 
   useEffect(() => {
-    axios
+    api
       .get(`http://localhost:8001/threads/${threadId}/comments`)
       .then((res) => setComments(res.data))
       .catch((err) => console.error('Fel vid hämtning av kommentarer:', err));

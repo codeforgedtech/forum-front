@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/axiosInstance';
 import { useNavigate } from 'react-router-dom';
 
 function SendPrivateMessage({ token }) {
@@ -11,7 +11,7 @@ function SendPrivateMessage({ token }) {
 
   useEffect(() => {
     // H�mta alla anv�ndare som kan vara mottagare
-    axios
+    api
       .get('http://localhost:8001/users', {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -27,7 +27,7 @@ function SendPrivateMessage({ token }) {
     e.preventDefault();
 
     // Skicka POST-beg�ran till backend f�r att skapa ett privat meddelande
-    axios
+    api
       .post(
         'http://localhost:8001/private-messages',
         { receiverId: recipientId, body: content }, // Anv�nd 'body' ist�llet f�r 'content'

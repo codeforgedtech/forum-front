@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../utils/axiosInstance';
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Trash, Send } from "lucide-react";
@@ -13,33 +13,53 @@ export default function ThreadPage({ token, currentUserId }) {
 
   useEffect(() => {
     if (!token) return;
-    axios
-      .get(`http://localhost:8001/threads/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => setThread(res.data))
-      .catch((err) => {
+  
+    const fetchThreadAndCount = async () => {
+      try {
+        const threadRes = await api.get(`http://localhost:8001/threads/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+  
+        const commentsRes = await api.get(`http://localhost:8001/threads/${id}/comments`);
+        const commentCount = commentsRes.data.length;
+  
+        setThread({ ...threadRes.data, comment_count: commentCount }); 
+      } catch (err) {
         setError('Kunde inte h�mta tr�d');
-        console.error('Fel vid h�mtning:', err);
-      });
+        console.error(err);
+      }
+    };
+  
+    fetchThreadAndCount();
   }, [id, token]);
-
+  
+ 
   const handleDeleteThread = async () => {
-    if (!window.confirm('Vill du verkligen ta bort tr�den?')) return;
+    if (!window.confirm("Vill du verkligen ta bort tr�den?")) return;
+  
     try {
-      await axios.delete(`http://localhost:8001/threads/${id}`, {
+      const res = await api.get(`http://localhost:8001/threads/${id}/comments`);
+      const threadComments = res.data;
+  
+      if (threadComments.length > 0) {
+        alert("Du kan inte ta bort en tr�d som har kommentarer.");
+        return;
+      }
+  
+      await api.delete(`http://localhost:8001/threads/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      navigate('/');
+  
+      navigate("/");
     } catch (err) {
-      console.error('Kunde inte ta bort tr�den:', err);
-      setError('Fel vid borttagning av tr�d');
+      console.error("Kunde inte ta bort tr�den:", err);
+      setError("Fel vid borttagning av tr�d");
     }
   };
-
+ 
   if (error) return <p className="text-red-500 text-center">{error}</p>;
-  if (!thread) return <p className="text-center">Laddar tr�d...</p>;
-
+  if (!thread) return <p className="text-center">Laddar tråd...</p>;
+  const { threadUserId } = thread;
   return (
     <div className="min-h-screen w-full bg-white p-6 overflow-auto">
       <div className="flex justify-between items-start">
@@ -50,16 +70,21 @@ export default function ThreadPage({ token, currentUserId }) {
           </p>
         </div>
 
-        {(String(thread.user_id) === String(currentUserId)) && (
+
+
+      
+
+  {String(threadUserId) === String(currentUserId) && thread.comment_count === 0 && (
           <button
             onClick={handleDeleteThread}
             className="text-red-600 mt-4 flex items-center hover:underline"
           >
             <Trash className="w-4 h-4 mr-1" />
-            Ta bort tr�d
+            Ta bort tråd
           </button>
         )}
-      </div>
+
+</div>
 
       <div className="text-sm text-gray-500 flex justify-between">
         <span>Datum {new Date(thread.created_at).toLocaleDateString()}</span>
@@ -86,7 +111,7 @@ function CommentSection({ threadId, token, currentUserId }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    axios
+    api
       .get(`http://localhost:8001/threads/${threadId}/comments`)
       .then((res) => setComments(res.data))
       .catch(() => setError('Kunde inte h�mta kommentarer'));
@@ -101,13 +126,15 @@ function CommentSection({ threadId, token, currentUserId }) {
     }
 
     try {
-      const res = await axios.post(
+      const res = await api.post(
         `http://localhost:8001/threads/${threadId}/comments`,
         { content: newComment },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setComments((prev) => [...prev, res.data]);
       setNewComment('');
+      window.location.reload();
+      
     } catch (err) {
       console.error('Kommentar skapades inte:', err);
       setError('Kunde inte skicka kommentar');
@@ -119,7 +146,7 @@ function CommentSection({ threadId, token, currentUserId }) {
     if (!newReply.trim()) return;
 
     try {
-      const res = await axios.post(
+      const res = await api.post(
         `http://localhost:8001/comments/${commentId}/replies`,
         { content: newReply },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -137,6 +164,7 @@ function CommentSection({ threadId, token, currentUserId }) {
       );
       setNewReply('');
       setReplyingTo(null);
+      window.location.reload();
     } catch (err) {
       console.error('Svar kunde inte skickas:', err);
       setError('Kunde inte skicka svar');
@@ -144,16 +172,25 @@ function CommentSection({ threadId, token, currentUserId }) {
   };
 
   const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('Vill du verkligen ta bort kommentaren?')) return;
-
+    const comment = comments.find(c => c.id === commentId);
+  
+    if (!comment) return;
+  
+    if (comment.replies && comment.replies.length > 0) {
+      alert("Du m�ste ta bort alla svar innan du kan ta bort kommentaren.");
+      return;
+    }
+  
+    if (!window.confirm("Vill du verkligen ta bort kommentaren?")) return;
+  
     try {
-      await axios.delete(`http://localhost:8001/comments/${commentId}`, {
+      await api.delete(`http://localhost:8001/comments/${commentId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (err) {
-      console.error('Kunde inte ta bort kommentaren:', err);
-      setError('Fel vid borttagning av kommentar');
+      console.error("Kunde inte ta bort kommentaren:", err);
+      setError("Fel vid borttagning av kommentar");
     }
   };
 
@@ -161,7 +198,7 @@ function CommentSection({ threadId, token, currentUserId }) {
     if (!window.confirm('Vill du verkligen ta bort svaret?')) return;
 
     try {
-      await axios.delete(`http://localhost:8001/comments/${replyId}`, {
+      await api.delete(`http://localhost:8001/comments/${replyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -187,7 +224,7 @@ function CommentSection({ threadId, token, currentUserId }) {
         Kommentarer ({comments.reduce((acc, c) => acc + 1 + (c.replies?.length || 0), 0)})
       </h2>
 
-      {comments.length === 0 && <p className="text-gray-500">Inga kommentarer �nnu.</p>}
+      {comments.length === 0 && <p className="text-gray-500">Inga kommentarer ännu.</p>}
 
       <ul className="space-y-4 mb-6">
         {comments.map((comment) => (
