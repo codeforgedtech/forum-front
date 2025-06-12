@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import api from '../utils/axiosInstance';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-
+import { useTheme} from '../utils/ThemeContext';
 export default function EditProfile({ token, currentUserId }) {
   const [profile, setProfile] = useState({
     username: '',
     email: '',
     description: '',
   });
-
+ const { darkMode } = useTheme();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,7 +45,9 @@ export default function EditProfile({ token, currentUserId }) {
   };
 
   return (
-    <div className="max-w-xl mx-auto bg-white p-6 rounded shadow">
+    <div className={`space-y-4 max-w-sm mx-auto mt-10 p-6 rounded shadow-md transition-all duration-300 ${
+      darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'
+    }`}>
       <h2 className="text-xl font-semibold mb-4">Redigera Profil</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

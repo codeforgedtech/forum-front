@@ -1,92 +1,89 @@
-import { useEffect, useState } from 'react';
-import api from '../utils/axiosInstance';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Trash, Send } from "lucide-react";
+import api from '../utils/axiosInstance';
+import { useTheme} from '../utils/ThemeContext'; // ⬅️ Importera darkMode
 
 export default function ThreadPage({ token, currentUserId }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { darkMode } = useTheme(); // ⬅️ Använd darkMode
 
   const [thread, setThread] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!token) return;
-  
+
     const fetchThreadAndCount = async () => {
       try {
         const threadRes = await api.get(`http://localhost:8001/threads/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-  
+
         const commentsRes = await api.get(`http://localhost:8001/threads/${id}/comments`);
         const commentCount = commentsRes.data.length;
-  
-        setThread({ ...threadRes.data, comment_count: commentCount }); 
+
+        setThread({ ...threadRes.data, comment_count: commentCount });
       } catch (err) {
-        setError('Kunde inte h�mta tr�d');
+        setError('Kunde inte hämta tråd');
         console.error(err);
       }
     };
-  
+
     fetchThreadAndCount();
   }, [id, token]);
-  
- 
+
   const handleDeleteThread = async () => {
-    if (!window.confirm("Vill du verkligen ta bort tr�den?")) return;
-  
+    if (!window.confirm("Vill du verkligen ta bort tråden?")) return;
+
     try {
       const res = await api.get(`http://localhost:8001/threads/${id}/comments`);
       const threadComments = res.data;
-  
+
       if (threadComments.length > 0) {
-        alert("Du kan inte ta bort en tr�d som har kommentarer.");
+        alert("Du kan inte ta bort en tråd som har kommentarer.");
         return;
       }
-  
+
       await api.delete(`http://localhost:8001/threads/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-  
+
       navigate("/");
     } catch (err) {
-      console.error("Kunde inte ta bort tr�den:", err);
-      setError("Fel vid borttagning av tr�d");
+      console.error("Kunde inte ta bort tråden:", err);
+      setError("Fel vid borttagning av tråd");
     }
   };
- 
+
   if (error) return <p className="text-red-500 text-center">{error}</p>;
   if (!thread) return <p className="text-center">Laddar tråd...</p>;
-  const { threadUserId } = thread;
+
   return (
-    <div className="min-h-screen w-full bg-white p-6 overflow-auto">
+    <div className={`min-h-screen w-full p-6 overflow-auto transition-colors duration-300 ${
+      darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'
+    }`}>
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-blue-800">{thread.title}</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Skapad av <span className="font-medium text-gray-700">{thread.author}</span>
+          <h1 className="text-2xl font-bold text-blue-500">{thread.title}</h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Skapad av <span className="font-medium">{thread.author}</span>
           </p>
         </div>
 
-
-
-      
-
-  {String(threadUserId) === String(currentUserId) && thread.comment_count === 0 && (
+        {String(thread.threadUserId) === String(currentUserId) && thread.comment_count === 0 && (
           <button
             onClick={handleDeleteThread}
-            className="text-red-600 mt-4 flex items-center hover:underline"
+            className="text-red-500 mt-2 flex items-center hover:underline"
           >
             <Trash className="w-4 h-4 mr-1" />
-            Ta bort tråd
+           
           </button>
         )}
+      </div>
 
-</div>
-
-      <div className="text-sm text-gray-500 flex justify-between">
+      <div className="text-sm text-gray-400 flex justify-between mt-2">
         <span>Datum {new Date(thread.created_at).toLocaleDateString()}</span>
         {thread.category && (
           <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">
@@ -94,16 +91,24 @@ export default function ThreadPage({ token, currentUserId }) {
           </span>
         )}
       </div>
-      <p className="text-gray-700 leading-relaxed whitespace-pre-line mt-4">
+
+      <p className={`leading-relaxed whitespace-pre-line mt-4 ${
+        darkMode ? 'text-gray-200' : 'text-gray-800'
+      }`}>
         {thread.content}
       </p>
 
-      <CommentSection threadId={id} token={token} currentUserId={currentUserId} />
+      <CommentSection
+        threadId={id}
+        token={token}
+        currentUserId={currentUserId}
+        darkMode={darkMode}
+      />
     </div>
   );
 }
 
-function CommentSection({ threadId, token, currentUserId }) {
+function CommentSection({ threadId, token, currentUserId, darkMode }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [newReply, setNewReply] = useState('');
@@ -114,16 +119,12 @@ function CommentSection({ threadId, token, currentUserId }) {
     api
       .get(`http://localhost:8001/threads/${threadId}/comments`)
       .then((res) => setComments(res.data))
-      .catch(() => setError('Kunde inte h�mta kommentarer'));
+      .catch(() => setError('Kunde inte hämta kommentarer'));
   }, [threadId]);
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    if (!token) {
-      setError('Du m�ste vara inloggad f�r att kommentera.');
-      return;
-    }
 
     try {
       const res = await api.post(
@@ -134,9 +135,7 @@ function CommentSection({ threadId, token, currentUserId }) {
       setComments((prev) => [...prev, res.data]);
       setNewComment('');
       window.location.reload();
-      
-    } catch (err) {
-      console.error('Kommentar skapades inte:', err);
+    } catch {
       setError('Kunde inte skicka kommentar');
     }
   };
@@ -151,9 +150,8 @@ function CommentSection({ threadId, token, currentUserId }) {
         { content: newReply },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      setComments((prevComments) =>
-        prevComments.map((comment) =>
+      setComments((prev) =>
+        prev.map((comment) =>
           comment.id === commentId
             ? {
                 ...comment,
@@ -165,31 +163,25 @@ function CommentSection({ threadId, token, currentUserId }) {
       setNewReply('');
       setReplyingTo(null);
       window.location.reload();
-    } catch (err) {
-      console.error('Svar kunde inte skickas:', err);
+    } catch {
       setError('Kunde inte skicka svar');
     }
   };
 
   const handleDeleteComment = async (commentId) => {
-    const comment = comments.find(c => c.id === commentId);
-  
-    if (!comment) return;
-  
-    if (comment.replies && comment.replies.length > 0) {
-      alert("Du m�ste ta bort alla svar innan du kan ta bort kommentaren.");
+    const comment = comments.find((c) => c.id === commentId);
+    if (!comment || (comment.replies && comment.replies.length > 0)) {
+      alert("Du måste ta bort alla svar innan du kan ta bort kommentaren.");
       return;
     }
-  
     if (!window.confirm("Vill du verkligen ta bort kommentaren?")) return;
-  
+
     try {
       await api.delete(`http://localhost:8001/comments/${commentId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setComments((prev) => prev.filter((c) => c.id !== commentId));
-    } catch (err) {
-      console.error("Kunde inte ta bort kommentaren:", err);
+    } catch {
       setError("Fel vid borttagning av kommentar");
     }
   };
@@ -212,8 +204,7 @@ function CommentSection({ threadId, token, currentUserId }) {
             : c
         )
       );
-    } catch (err) {
-      console.error('Kunde inte ta bort svaret:', err);
+    } catch {
       setError('Fel vid borttagning av svar');
     }
   };
@@ -224,15 +215,21 @@ function CommentSection({ threadId, token, currentUserId }) {
         Kommentarer ({comments.reduce((acc, c) => acc + 1 + (c.replies?.length || 0), 0)})
       </h2>
 
-      {comments.length === 0 && <p className="text-gray-500">Inga kommentarer ännu.</p>}
+      {comments.length === 0 && (
+        <p className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+          Inga kommentarer ännu.
+        </p>
+      )}
 
       <ul className="space-y-4 mb-6">
         {comments.map((comment) => (
-          <li key={comment.id} className="bg-gray-100 p-4 rounded-lg">
-            <div className="text-sm text-gray-600 mb-1">
+          <li key={comment.id} className={`p-4 rounded-lg ${
+            darkMode ? 'bg-gray-800 text-white' : 'bg-gray-100'
+          }`}>
+            <div className="text-sm text-gray-400 mb-1">
               {comment.username} &mdash; {new Date(comment.created_at).toLocaleString()}
             </div>
-            <p className="text-gray-800">{comment.content}</p>
+            <p>{comment.content}</p>
 
             {String(comment.user_id) === String(currentUserId) && (
               <button
@@ -240,18 +237,21 @@ function CommentSection({ threadId, token, currentUserId }) {
                 className="text-red-500 text-sm mt-1 flex items-center hover:underline"
               >
                 <Trash className="w-4 h-4 mr-1" />
-                Ta bort kommentar
+               
               </button>
             )}
 
+            {/* Svar */}
             {comment.replies?.length > 0 && (
               <div className="mt-4 ml-6 space-y-2">
                 {comment.replies.map((reply) => (
-                  <div key={reply.id} className="bg-gray-200 p-4 rounded-lg">
-                    <div className="text-sm text-gray-600 mb-1">
+                  <div key={reply.id} className={`p-4 rounded-lg ${
+                    darkMode ? 'bg-gray-700 text-white' : 'bg-gray-200'
+                  }`}>
+                    <div className="text-sm text-gray-400 mb-1">
                       {reply.username} &mdash; {new Date(reply.created_at).toLocaleString()}
                     </div>
-                    <p className="text-gray-800">{reply.content}</p>
+                    <p>{reply.content}</p>
 
                     {String(reply.user_id) === String(currentUserId) && (
                       <button
@@ -259,7 +259,7 @@ function CommentSection({ threadId, token, currentUserId }) {
                         className="text-red-500 text-sm mt-1 flex items-center hover:underline"
                       >
                         <Trash className="w-4 h-4 mr-1" />
-                        Ta bort svar
+                       
                       </button>
                     )}
                   </div>
@@ -269,7 +269,7 @@ function CommentSection({ threadId, token, currentUserId }) {
 
             <button
               onClick={() => setReplyingTo(comment.id)}
-              className="text-blue-600 hover:underline mt-2 text-sm"
+              className="text-blue-500 hover:underline mt-2 text-sm"
               disabled={replyingTo === comment.id}
             >
               Svara
@@ -284,7 +284,7 @@ function CommentSection({ threadId, token, currentUserId }) {
                   value={newReply}
                   onChange={(e) => setNewReply(e.target.value)}
                   placeholder="Skriv ett svar..."
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg"
                   rows="3"
                 ></textarea>
                 <button
@@ -300,13 +300,14 @@ function CommentSection({ threadId, token, currentUserId }) {
         ))}
       </ul>
 
+      {/* Ny kommentar */}
       {token ? (
         <form onSubmit={handleCommentSubmit} className="space-y-3">
           <textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Skriv en kommentar..."
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-gray-300 rounded-lg"
             rows="3"
           ></textarea>
           <button
@@ -318,13 +319,16 @@ function CommentSection({ threadId, token, currentUserId }) {
           </button>
         </form>
       ) : (
-        <p className="text-sm text-gray-500">Du m�ste vara inloggad f�r att kommentera.</p>
+        <p className="text-sm text-gray-400 mt-2">
+          Du måste vara inloggad för att kommentera.
+        </p>
       )}
 
       {error && <p className="text-red-500 mt-2">{error}</p>}
     </div>
   );
 }
+
 
 
 

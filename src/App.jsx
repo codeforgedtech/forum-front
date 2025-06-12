@@ -15,7 +15,7 @@ import SendMessageInConversation from './pages/ConversationMessage';
 import ProfilePage from './pages/ProfilePage';
 import EditProfile from './pages/EditProfile';
 import api from './utils/axiosInstance'; // Importera din axios-instans
-
+import { useTheme} from './utils/ThemeContext';
 const decodeToken = (token) => {
   try {
     const decoded = JSON.parse(atob(token.split('.')[1]));
@@ -34,6 +34,7 @@ function App() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const { darkMode } = useTheme();
 
   // När token ändras, sätt user och hämta unread count
   useEffect(() => {
@@ -76,13 +77,21 @@ function App() {
 
   return (
     <BrowserRouter>
+   
       <Navbar
         token={token}
         onLogout={handleLogout}
         unreadCount={unreadCount}
         currentUser={currentUser}
       />
-      <div className="w-screen-lg mx-auto p-6">
+  
+  <div
+  className={`min-h-screen w-screen-lg mx-auto p-6 ${
+    darkMode
+      ? 'bg-gray-950 text-gray-100'  // Mörkare bakgrund och ljusare text
+      : 'bg-gray-50 text-gray-900'   // Ljusare bakgrund och mörkare text
+  }`}
+>
         <Routes>
           <Route
             path="/"

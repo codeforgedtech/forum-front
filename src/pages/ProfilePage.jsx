@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import api from '../utils/axiosInstance';
 import { useNavigate } from 'react-router-dom';
-
+import { useTheme} from '../utils/ThemeContext';
 export default function ProfilePage({ token, currentUserId }) {
   const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
-
+const { darkMode } = useTheme();
   useEffect(() => {
     api
       .get(`/profile/${currentUserId}`, {
@@ -19,7 +19,9 @@ export default function ProfilePage({ token, currentUserId }) {
   if (!userData) return <p>Laddar profil...</p>;
 
   return (
-    <div className="max-w-xl mx-auto mt-10 bg-white p-6 rounded shadow">
+    <div className={`space-y-4 max-w-sm mx-auto mt-10 p-6 rounded shadow-md transition-all duration-300 ${
+      darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'
+    }`}>
       <h2 className="text-xl font-semibold mb-4">Min Profil</h2>
 
       {userData.profilePicture ? (

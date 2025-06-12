@@ -3,13 +3,14 @@ import { useState } from 'react';
 import api from '../utils/axiosInstance';
 import { useNavigate } from 'react-router-dom';
 import React from 'react'
+import { useTheme} from '../utils/ThemeContext';
 import { ToastContainer, toast } from 'react-toastify';
 export default function Register() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-
+ const { darkMode } = useTheme();
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
@@ -27,7 +28,9 @@ export default function Register() {
   };
 
   return (
-    <form onSubmit={handleRegister} className="max-w-md mx-auto mt-10 space-y-4">
+    <form onSubmit={handleRegister} className={`space-y-4 max-w-sm mx-auto mt-10 p-6 rounded shadow-md transition-all duration-300 ${
+      darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'
+    }`}>
       <h1 className="text-2xl font-bold">Registrera dig</h1>
       <input
         type="text"
