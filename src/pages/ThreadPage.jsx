@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash, Send } from "lucide-react";
+import { Trash, Send, Mail } from "lucide-react";
 import api from '../utils/axiosInstance';
-import { useTheme} from '../utils/ThemeContext'; // ⬅️ Importera darkMode
+import { useTheme } from '../utils/ThemeContext';
+import QuickPrivateMessage from './QuickPrivateMessage';
 
 export default function ThreadPage({ token, currentUserId }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { darkMode } = useTheme(); // ⬅️ Använd darkMode
+  const { darkMode } = useTheme();
 
   const [thread, setThread] = useState(null);
   const [error, setError] = useState('');
+  const [showMessageBox, setShowMessageBox] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -67,9 +69,21 @@ export default function ThreadPage({ token, currentUserId }) {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-blue-500">{thread.title}</h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Skapad av <span className="font-medium">{thread.author}</span>
-          </p>
+          <div className="flex items-center text-sm text-gray-400 mt-1 gap-2">
+            Skapad av <span className="font-medium text-white">{thread.author}</span>
+            
+            {token && currentUserId && thread.threadUserId && String(thread.threadUserId) !== String(currentUserId) && (
+  <button
+    onClick={() => setShowMessageBox(true)}
+    title={`Skicka meddelande till ${thread.author}`}
+    className="hover:text-blue-500 transition-colors"
+  >
+    <Mail className="w-5 h-5" />
+  </button>
+)}
+              
+          
+          </div>
         </div>
 
         {String(thread.threadUserId) === String(currentUserId) && thread.comment_count === 0 && (
@@ -78,7 +92,6 @@ export default function ThreadPage({ token, currentUserId }) {
             className="text-red-500 mt-2 flex items-center hover:underline"
           >
             <Trash className="w-4 h-4 mr-1" />
-           
           </button>
         )}
       </div>
@@ -104,6 +117,27 @@ export default function ThreadPage({ token, currentUserId }) {
         currentUserId={currentUserId}
         darkMode={darkMode}
       />
+
+{showMessageBox && String(thread.threadUserId) !== String(currentUserId) && (
+ <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+ <div className={`p-6 rounded-lg shadow-lg w-full max-w-xl ${
+   darkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'
+ }`}>
+      <button
+        onClick={() => setShowMessageBox(false)}
+        className="absolute top-2 right-3 text-gray-500 hover:text-red-500"
+      >
+X
+      </button>
+      <QuickPrivateMessage
+        token={token}
+        recipientId={thread.threadUserId}
+        recipientName={thread.author}
+        onClose={() => setShowMessageBox(false)}
+      />
+    </div>
+  </div>
+)}
     </div>
   );
 }
@@ -114,12 +148,15 @@ function CommentSection({ threadId, token, currentUserId, darkMode }) {
   const [newReply, setNewReply] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [error, setError] = useState('');
+  const [showMessageBox, setShowMessageBox] = useState(false);
+  const [recipientId, setRecipientId] = useState(null);
+  const [recipientName, setRecipientName] = useState('');
 
   useEffect(() => {
     api
       .get(`http://localhost:8001/threads/${threadId}/comments`)
       .then((res) => setComments(res.data))
-      .catch(() => setError('Kunde inte hämta kommentarer'));
+      .catch(() => setError('Kunde inte h�mta kommentarer'));
   }, [threadId]);
 
   const handleCommentSubmit = async (e) => {
@@ -171,7 +208,7 @@ function CommentSection({ threadId, token, currentUserId, darkMode }) {
   const handleDeleteComment = async (commentId) => {
     const comment = comments.find((c) => c.id === commentId);
     if (!comment || (comment.replies && comment.replies.length > 0)) {
-      alert("Du måste ta bort alla svar innan du kan ta bort kommentaren.");
+      alert("Du m�ste ta bort alla svar innan du kan ta bort kommentaren.");
       return;
     }
     if (!window.confirm("Vill du verkligen ta bort kommentaren?")) return;
@@ -217,7 +254,7 @@ function CommentSection({ threadId, token, currentUserId, darkMode }) {
 
       {comments.length === 0 && (
         <p className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
-          Inga kommentarer ännu.
+          Inga kommentarer �nnu.
         </p>
       )}
 
@@ -226,8 +263,21 @@ function CommentSection({ threadId, token, currentUserId, darkMode }) {
           <li key={comment.id} className={`p-4 rounded-lg ${
             darkMode ? 'bg-gray-800 text-white' : 'bg-gray-100'
           }`}>
-            <div className="text-sm text-gray-400 mb-1">
+            <div className="text-sm text-gray-400 mb-1 flex items-center gap-2">
               {comment.username} &mdash; {new Date(comment.created_at).toLocaleString()}
+              {String(comment.user_id) !== String(currentUserId) && token && (
+                <button
+                  title={`Skicka meddelande till ${comment.username}`}
+                  onClick={() => {
+                    setRecipientId(comment.user_id);
+                    setRecipientName(comment.username);
+                    setShowMessageBox(true);
+                  }}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  <Mail className="w-4 h-4" />
+                </button>
+              )}
             </div>
             <p>{comment.content}</p>
 
@@ -237,19 +287,30 @@ function CommentSection({ threadId, token, currentUserId, darkMode }) {
                 className="text-red-500 text-sm mt-1 flex items-center hover:underline"
               >
                 <Trash className="w-4 h-4 mr-1" />
-               
               </button>
             )}
 
-            {/* Svar */}
             {comment.replies?.length > 0 && (
               <div className="mt-4 ml-6 space-y-2">
                 {comment.replies.map((reply) => (
                   <div key={reply.id} className={`p-4 rounded-lg ${
                     darkMode ? 'bg-gray-700 text-white' : 'bg-gray-200'
                   }`}>
-                    <div className="text-sm text-gray-400 mb-1">
+                    <div className="text-sm text-gray-400 mb-1 flex items-center gap-2">
                       {reply.username} &mdash; {new Date(reply.created_at).toLocaleString()}
+                      {String(reply.user_id) !== String(currentUserId) && token && (
+                        <button
+                          title={`Skicka meddelande till ${reply.username}`}
+                          onClick={() => {
+                            setRecipientId(reply.user_id);
+                            setRecipientName(reply.username);
+                            setShowMessageBox(true);
+                          }}
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          <Mail className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                     <p>{reply.content}</p>
 
@@ -259,7 +320,6 @@ function CommentSection({ threadId, token, currentUserId, darkMode }) {
                         className="text-red-500 text-sm mt-1 flex items-center hover:underline"
                       >
                         <Trash className="w-4 h-4 mr-1" />
-                       
                       </button>
                     )}
                   </div>
@@ -300,7 +360,6 @@ function CommentSection({ threadId, token, currentUserId, darkMode }) {
         ))}
       </ul>
 
-      {/* Ny kommentar */}
       {token ? (
         <form onSubmit={handleCommentSubmit} className="space-y-3">
           <textarea
@@ -325,9 +384,31 @@ function CommentSection({ threadId, token, currentUserId, darkMode }) {
       )}
 
       {error && <p className="text-red-500 mt-2">{error}</p>}
+
+      {showMessageBox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className={`p-6 rounded-lg shadow-lg w-full max-w-xl ${
+          darkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'
+        }`}>
+            <button
+              onClick={() => setShowMessageBox(false)}
+              className="absolute top-2 right-3 text-gray-500 hover:text-red-500"
+            >
+              X
+            </button>
+            <QuickPrivateMessage
+              token={token}
+              recipientId={recipientId}
+              recipientName={recipientName}
+              onClose={() => setShowMessageBox(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 
 
