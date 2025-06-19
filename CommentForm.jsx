@@ -1,6 +1,6 @@
 // components/CommentForm.jsx
 import { useState } from 'react';
-import axios from 'axios';
+import api from 'api';
 
 export default function CommentForm({ threadId, token, onCommentAdded }) {
   const [content, setContent] = useState('');
@@ -11,7 +11,7 @@ export default function CommentForm({ threadId, token, onCommentAdded }) {
     setError('');
 
     try {
-      await axios.post(
+      await api.post(
         `http://localhost:8000/threads/${threadId}/comments`,
         { content },
         {

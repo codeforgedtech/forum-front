@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify'; // Importera Toastify
+import SessionModal from './components/SessionModal';
 
 import Navbar from './components/Navbar';
 import ThreadPage from './pages/ThreadPage';
@@ -10,11 +12,17 @@ import CreateThread from './pages/CreateThread';
 import Messages from './pages/MessagesPage'; 
 import SendPrivateMessage from './pages/PrivateMessages';
 import SendMessageInConversation from './pages/ConversationMessage';
-
+import ProfilePage from './pages/ProfilePage';
+import EditProfile from './pages/EditProfile';
+import api from './utils/axiosInstance'; // Importera din axios-instans
+import { useTheme} from './utils/ThemeContext';
 const decodeToken = (token) => {
   try {
     const decoded = JSON.parse(atob(token.split('.')[1]));
-    return decoded.id;
+    return {
+      id: decoded.id,
+      username: decoded.username, // Se till att backend skickar med detta!
+    };
   } catch (error) {
     console.error("Kunde inte dekoda token:", error);
     return null;
@@ -24,31 +32,39 @@ const decodeToken = (token) => {
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const { darkMode } = useTheme();
 
+  // När token ändras, sätt user och hämta unread count
   useEffect(() => {
     if (token) {
-      const userId = decodeToken(token);
-      setCurrentUserId(userId);
+      const user = decodeToken(token);
+      setCurrentUser(user);
+      setCurrentUserId(user.id);
+
+      // Hämta antal olästa meddelanden
+      api.get('private-messages/unread/count', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => {
+          setUnreadCount(res.data.unreadCount);
+        })
+        .catch((err) => {
+          console.error('Kunde inte hämta antal olästa meddelanden:', err);
+          setUnreadCount(0);
+        });
+    } else {
+      setCurrentUser(null);
+      setCurrentUserId(null);
+      setUnreadCount(0);
     }
   }, [token]);
-  const refreshUnreadCount = async () => {
-    if (!token) return;
 
-    try {
-      const res = await fetch('http://localhost:8001/private-messages/unread/count', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setUnreadCount(data.unreadCount);
-    } catch (err) {
-      console.error('Kunde inte hämta olästa meddelanden:', err);
-    }
-  };
- 
   const handleLogin = (newToken) => {
     localStorage.setItem('token', newToken);
     setToken(newToken);
+    toast.success('Välkommen tillbaka!');
   };
 
   const handleLogout = () => {
@@ -56,55 +72,76 @@ function App() {
     setToken(null);
     setCurrentUserId(null);
     setUnreadCount(0);
+    toast.info('Du har loggat ut.');
   };
-
-
-useEffect(() => {
-  if (!token) return;
-
-  const fetchUnreadCount = async () => {
-    try {
-      const res = await fetch('http://localhost:8001/private-messages/unread/count', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setUnreadCount(data.unreadCount);
-    } catch (err) {
-      console.error('Kunde inte hämta olästa meddelanden:', err);
-    }
-  };
-
-  fetchUnreadCount();
-}, [token]);
 
   return (
     <BrowserRouter>
-     <Navbar token={token} onLogout={handleLogout} unreadCount={unreadCount} />
-      <div className="w-screen-lg mx-auto p-6">
+   
+      <Navbar
+        token={token}
+        onLogout={handleLogout}
+        unreadCount={unreadCount}
+        currentUser={currentUser}
+      />
+  
+  <div
+  className={`min-h-screen w-screen-lg mx-auto p-6 ${
+    darkMode
+      ? 'bg-gray-950 text-gray-100'  // Mörkare bakgrund och ljusare text
+      : 'bg-gray-50 text-gray-900'   // Ljusare bakgrund och mörkare text
+  }`}
+>
         <Routes>
           <Route
             path="/"
-            element={token ? <ThreadList token={token} /> : <Navigate to="/login" />}
+            element={
+              token ? (
+                <ThreadList token={token} currentUserId={currentUserId} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
           />
+
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register />} />
           <Route
             path="/threads/:id"
-            element={token ? <ThreadPage token={token} /> : <Navigate to="/login" />}
+            element={
+              token ? (
+                <ThreadPage token={token} currentUserId={currentUserId} />
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
           />
           <Route
             path="/create"
             element={token ? <CreateThread token={token} /> : <Navigate to="/login" />}
           />
           <Route
-  path="/messages"
+            path="/messages"
+            element={
+              <Messages
+                token={token}
+                currentUserId={currentUserId}
+                setUnreadCount={setUnreadCount}
+              />
+            }
+          />
+          <Route
+  path="/profile/edit"
+  element={token ? <EditProfile token={token} currentUserId={currentUserId} /> : <Navigate to="/login" />}
+/>
+<Route
+  path="/profile"
   element={
-    <Messages
-      token={token}
-      currentUserId={currentUserId}
-      setUnreadCount={setUnreadCount}
-      refreshUnreadCount={refreshUnreadCount} // 👈 Lägg till denna
-    />
+    token ? (
+      <ProfilePage token={token} currentUserId={currentUserId} />
+    ) : (
+      <Navigate to="/login" />
+    )
   }
 />
           <Route
@@ -117,11 +154,16 @@ useEffect(() => {
           />
         </Routes>
       </div>
+      <SessionModal token={token} onLogout={handleLogout} />
+
+      <ToastContainer /> {/* Placera ToastContainer här för att visa alla toasts */}
     </BrowserRouter>
   );
 }
 
 export default App;
+
+
 
 
 
