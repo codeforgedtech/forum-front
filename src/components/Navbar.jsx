@@ -85,20 +85,60 @@ export default function Navbar({ token, onLogout, unreadCount, currentUser }) {
             {currentUser?.username?.charAt(0)}
           </div>
         )}
-        <span className="text-sm text-gray-300 hover:text-white">{currentUser.username}</span>
+        
       </button>
       {menuOpen && (
-        <div className={`absolute right-0 mt-2 w-48 rounded shadow-lg z-20 ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}>
-          <Link to="/profile/" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setMenuOpen(false)}>Min profil</Link>
-          <Link to="/profile/edit" className="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setMenuOpen(false)}>Redigera profil</Link>
-          <button
-            onClick={() => { setMenuOpen(false); handleLogout(); }}
-            className="w-full text-left px-4 py-2 hover:bg-red-100 dark:hover:bg-red-800 text-red-600"
-          >
-            Logga ut
-          </button>
-        </div>
-      )}
+  <div
+    className={`space-y-1 w-48 absolute right-0 mt-2 p-3 rounded shadow-md transition-all duration-300 ${
+      darkMode ? 'bg-gray-900 text-white' : 'bg-white text-black'
+    }`}
+  >
+    <span className="block px-4 py-2 text-sm font-semibold">
+      {currentUser.username}
+    </span>
+
+    <Link
+      to="/profile/"
+      onClick={() => setMenuOpen(false)}
+      className={`block px-4 py-2 text-sm rounded transition-colors duration-200 ${
+        darkMode
+          ? 'hover:bg-gray-700'
+          : 'hover:bg-gray-100'
+      }`}
+    >
+      Min profil
+    </Link>
+
+    <Link
+      to="/profile/edit"
+      onClick={() => setMenuOpen(false)}
+      className={`block px-4 py-2 text-sm rounded transition-colors duration-200 ${
+        darkMode
+          ? 'hover:bg-gray-700'
+          : 'hover:bg-gray-100'
+      }`}
+    >
+      Redigera profil
+    </Link>
+
+    <hr className={`my-2 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`} />
+
+    <button
+      onClick={() => {
+        setMenuOpen(false);
+        handleLogout();
+      }}
+      className={`w-full text-left px-4 py-2 text-sm font-semibold rounded transition-colors duration-200 ${
+        darkMode
+          ? 'text-red-400 hover:bg-gray-700'
+          : 'text-red-700 hover:bg-gray-100'
+      }`}
+    >
+      Logga ut
+    </button>
+  </div>
+)}
+
     </div>
   );
 
@@ -168,16 +208,7 @@ export default function Navbar({ token, onLogout, unreadCount, currentUser }) {
 
         {token && (
           <>
-            <Link
-              to="/posts/create"
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
-              data-tooltip-id="createpost-tooltip"
-              data-tooltip-content="Skapa nytt inlägg"
-              aria-label="Skapa nytt inlägg"
-            >
-              <PlusCircle size={18} /> Skapa tråd
-            </Link>
-            <Tooltip id="createpost-tooltip" place="bottom" />
+           
 
             <Link
               to="/bookmarks"
